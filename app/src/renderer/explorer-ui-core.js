@@ -335,6 +335,24 @@
     };
   }
 
+  function queueJobCountDetail(job = {}) {
+    const sourceCount = Array.isArray(job.sources) ? job.sources.length : 0;
+    const sourceNoun = job.direction === 'download' ? 'remote item' : 'job source';
+    const sourceDetail = `${sourceCount} ${sourceNoun}${sourceCount === 1 ? '' : 's'}`;
+    const verification = job.verification;
+    const countGroups = ['verified', 'missing', 'sizeMismatch'];
+    const hasExpandedCount = verification
+      && countGroups.some((key) => Array.isArray(verification[key]));
+
+    if (!hasExpandedCount) return sourceDetail;
+
+    const fileCount = countGroups.reduce(
+      (total, key) => total + (Array.isArray(verification[key]) ? verification[key].length : 0),
+      0,
+    );
+    return `${sourceDetail} / ${fileCount} actual file${fileCount === 1 ? '' : 's'}`;
+  }
+
   function queueWithJobStatus(jobs = [], jobId = '', status = 'queued', patch = {}) {
     return jobs.map((job) =>
       job.id === jobId
@@ -1043,6 +1061,7 @@
     normalizeNewFolderName,
     normalizeRemotePrefix,
     queueCanUploadAll,
+    queueJobCountDetail,
     queueJobDestinationLabel,
     queueJobPlacementPreview,
     queueJobRequest,

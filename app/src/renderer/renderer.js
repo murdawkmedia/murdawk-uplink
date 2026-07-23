@@ -1809,14 +1809,13 @@ function transferShelfSourceName(job = {}) {
 }
 
 function transferShelfTechnicalDetail(job = {}, progress = {}, queuePosition = -1, waitingTotal = 0) {
-  const sourceCount = job.sources?.length || 0;
   const sourceIndex = Number(progress.sourceIndex) || 0;
   const sourceTotal = Number(progress.sourceTotal) || 0;
   const chunkSize = job.direction === 'download' ? '' : progress.diagnostics?.tuning?.chunkSize || '';
   return [
     queuePosition >= 0 ? `Queue ${queuePosition + 1} of ${waitingTotal}` : '',
     sourceIndex > 0 && sourceTotal > 0 ? `Source ${sourceIndex} of ${sourceTotal}` : '',
-    `${sourceCount} ${job.direction === 'download' ? 'remote item' : 'job source'}${sourceCount === 1 ? '' : 's'}`,
+    explorerCore.queueJobCountDetail(job),
     chunkSize ? `chunk ${chunkSize}` : '',
   ].filter(Boolean).join(' / ');
 }

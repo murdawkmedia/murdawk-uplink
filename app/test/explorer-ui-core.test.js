@@ -18,6 +18,7 @@ const {
   normalizeRemotePrefix,
   queueCanUploadAll,
   appendUniqueQueueJobs,
+  queueJobCountDetail,
   queueJobDestinationLabel,
   queueJobPlacementPreview,
   queueJobRequest,
@@ -444,6 +445,29 @@ test('queue placement preview separates destination from child folder placement'
     'logs -> archive-event/recordings/raw/stage1/day2/mix/logs/...',
     'austria-main - 28 May 2026 - 00000.mp4 -> archive-event/recordings/raw/stage1/day2/mix/austria-main - 28 May 2026 - 00000.mp4',
   ]);
+});
+
+test('queue count detail distinguishes selected sources from expanded files', () => {
+  const job = createQueueJob({
+    sources: [
+      'C:/Event/Main/logs',
+      ...Array.from({ length: 27 }, (_, index) => `C:/Event/Main/clip-${index + 1}.mp4`),
+    ],
+    settings: { prefix: 'sample-event/recordings/main/mix/day 1' },
+  });
+
+  assert.equal(queueJobCountDetail(job), '28 job sources');
+
+  const verified = queueWithJobStatus([job], job.id, 'complete', {
+    verification: {
+      ok: false,
+      verified: Array.from({ length: 30 }, (_, index) => ({ name: `verified-${index + 1}` })),
+      missing: [{ name: 'missing-1' }, { name: 'missing-2' }],
+      sizeMismatch: [{ name: 'mismatch-1' }],
+    },
+  })[0];
+
+  assert.equal(queueJobCountDetail(verified), '28 job sources / 33 actual files');
 });
 
 test('queue upload-all requires ready jobs and stops on failed jobs', () => {
