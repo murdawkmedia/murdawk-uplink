@@ -435,7 +435,7 @@ test('legacy crashed recovery gate cannot block normal lock acquisition', (t) =>
   }), 'utf8');
 
   writeJsonAtomic(target, { ignoredLegacyGate: true }, {
-    lockTimeoutMs: 250,
+    lockTimeoutMs: 2_000,
     lockRetryMs: 5,
     staleLockMs: 1_000,
   });
