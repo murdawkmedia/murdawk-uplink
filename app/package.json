@@ -1,0 +1,89 @@
+{
+  "name": "murdawk-uplink",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop file browser and resumable transfer manager for DigitalOcean Spaces, powered by rclone.",
+  "productName": "Murdawk Uplink",
+  "author": "Murdawk Media",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/murdawkmedia/murdawk-uplink#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/murdawkmedia/murdawk-uplink.git"
+  },
+  "bugs": {
+    "url": "https://github.com/murdawkmedia/murdawk-uplink/issues"
+  },
+  "main": "src/main.js",
+  "bin": {
+    "murdawk-uplink": "./bin/murdawk-uplink.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "cli": "node ./bin/murdawk-uplink.js",
+    "test": "node --test",
+    "ui:smoke": "electron ./scripts/ui-smoke.js",
+    "pack": "electron-builder --dir --publish never",
+    "dist:installer": "electron-builder --win nsis --publish never --config.artifactName=Murdawk-Uplink-Setup-${version}-${arch}.${ext}",
+    "dist:portable": "electron-builder --win portable --publish never --config.artifactName=Murdawk-Uplink-Portable-${version}-${arch}.${ext}",
+    "dist": "npm run dist:installer && npm run dist:portable"
+  },
+  "build": {
+    "appId": "com.murdawkmedia.uplink",
+    "productName": "Murdawk Uplink",
+    "copyright": "Copyright © 2026 Murdawk Media",
+    "artifactName": "Murdawk-Uplink-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "../dist"
+    },
+    "files": [
+      "bin/**/*",
+      "src/**/*",
+      "package.json",
+      "!src/**/*.map",
+      "!test/**/*",
+      "!scripts/**/*"
+    ],
+    "extraMetadata": {
+      "main": "src/main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "verifyUpdateCodeSignature": false,
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Murdawk Uplink",
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.11"
+  }
+}

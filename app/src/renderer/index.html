@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Murdawk Uplink</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell drive-shell">
+      <section class="masthead drive-topbar" aria-label="Drive controls">
+        <div>
+          <p class="eyebrow">Murdawk Media / DigitalOcean Spaces</p>
+          <h1 id="title">Murdawk Uplink</h1>
+        </div>
+        <div id="driveProfileLabel" class="drive-profile-label" aria-label="No Space connected">No Space connected</div>
+        <label class="drive-search">
+          <span>Search Spaces</span>
+          <input id="driveSearch" type="search" spellcheck="false" placeholder="Search current folder" />
+        </label>
+        <button type="button" id="openQueueDrawer" class="quiet" aria-controls="transferShelf" aria-expanded="false">Transfers</button>
+        <button type="button" id="openConnections" class="quiet" aria-controls="connectionsPanel" aria-expanded="false">Connections</button>
+        <div class="health" id="health">Checking rclone...</div>
+        <nav class="view-switcher" aria-label="Primary views">
+          <button type="button" id="showExplorerView" class="view-tab is-active" aria-current="page">Explorer</button>
+          <button type="button" id="showActivityView" class="view-tab">Activity</button>
+          <button type="button" id="showAdvancedView" class="view-tab">Advanced</button>
+        </nav>
+      </section>
+
+      <div class="transfer-shelf-region">
+        <aside id="transferShelf" class="transfer-shelf" aria-labelledby="transferShelfTitle" hidden>
+          <div class="transfer-shelf-head">
+            <div class="transfer-shelf-heading">
+              <h2 id="transferShelfTitle">Transfers</h2>
+              <span id="transferShelfCounts">No transfers</span>
+            </div>
+            <div class="transfer-shelf-compact" aria-label="Current transfer progress">
+              <strong id="transferShelfPercent">0%</strong>
+              <span id="transferShelfActive">0 active</span>
+              <span id="transferShelfSpeed">-</span>
+              <span id="transferShelfEta">ETA -</span>
+            </div>
+            <div class="transfer-shelf-actions">
+              <button type="button" id="transferShelfPauseAll" class="quiet icon-button" aria-label="Pause all transfers" aria-describedby="transferShelfPauseAllHelp" title="No active transfer in this window can be paused" disabled>&#9208;</button>
+              <span id="transferShelfPauseAllHelp" class="visually-hidden" role="status">No active transfer in this window can be paused.</span>
+              <button type="button" id="transferShelfToggle" class="quiet icon-button" aria-label="Collapse transfers" title="Collapse transfers" aria-expanded="true" aria-controls="transferShelfBody">&#8722;</button>
+            </div>
+          </div>
+          <div id="transferShelfBody" class="transfer-shelf-body">
+            <div id="transferShelfSummary" class="transfer-shelf-summary" role="status" aria-live="polite" aria-atomic="true">No transfers</div>
+            <div id="transferShelfList" class="transfer-shelf-list" role="list" aria-label="Transfer jobs">
+              <div class="empty-state">No transfers yet.</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <section id="activityPanel" class="activity-panel" aria-labelledby="activityTitle" hidden>
+        <div class="section-head activity-panel-head">
+          <div>
+            <p class="eyebrow">Transfer runs</p>
+            <h2 id="activityTitle" tabindex="-1">Activity</h2>
+          </div>
+          <button type="button" id="refreshActivity" class="quiet">Refresh</button>
+        </div>
+        <div id="activityList" class="activity-list" aria-live="polite">
+          <div class="empty-state">No transfer runs yet</div>
+        </div>
+      </section>
+
+      <section class="explorer-section" aria-labelledby="explorerTitle">
+        <div class="section-head explorer-head">
+          <div>
+            <h2 id="explorerTitle" tabindex="-1">Server Explorer</h2>
+            <div id="breadcrumbs" class="breadcrumbs"></div>
+          </div>
+          <div class="explorer-actions">
+            <button type="button" id="driveChooseFiles" class="primary" aria-describedby="remoteDropHint" title="Choose files for the open server folder">Upload files</button>
+            <button type="button" id="driveChooseFolder" class="quiet" aria-describedby="remoteDropHint" title="Choose a folder for the open server folder">Upload folder</button>
+            <button type="button" id="downloadRemoteItems" class="quiet" disabled>Download</button>
+            <button type="button" id="refreshRemote">Refresh</button>
+            <button type="button" id="newRemoteFolder" class="quiet">New Folder</button>
+            <button type="button" id="copyRemoteUrl" class="quiet" disabled>Copy URL</button>
+            <button type="button" id="copyInventory" class="quiet">Copy inventory</button>
+            <button type="button" id="copyRemoteItem" class="quiet" disabled>Copy</button>
+            <button type="button" id="renameRemoteItem" class="quiet" disabled>Rename</button>
+            <button type="button" id="moveRemoteItem" class="quiet" disabled>Move To</button>
+            <button type="button" id="archiveSortRemoteItem" class="quiet" disabled>Archive Sort</button>
+            <button type="button" id="deleteRemoteItem" class="danger" disabled>Delete</button>
+          </div>
+        </div>
+        <div class="path-row">
+          <label>
+            Remote path
+            <input id="remotePath" type="text" spellcheck="false" />
+          </label>
+          <button type="button" id="goRemotePath">Go</button>
+        </div>
+        <div class="explorer-drive">
+          <aside class="folder-rail" aria-label="Folder shortcuts">
+            <button type="button" id="driveNewFolder" class="drive-new-button">+ New Folder</button>
+            <div class="connection-switcher-wrap">
+              <button type="button" id="connectionSwitcher" class="connection-switcher" aria-haspopup="menu" aria-expanded="false" aria-controls="connectionMenu">
+                <span id="activeConnectionName">Choose a Space</span>
+                <span class="connection-chevron" aria-hidden="true">&#8964;</span>
+              </button>
+              <div id="connectionSwitcherStatus" class="connection-switcher-status" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+              <div id="connectionMenu" class="connection-menu" role="menu" aria-label="Spaces connections" hidden>
+                <div id="connectionMenuItems" role="none"></div>
+                <div class="connection-menu-separator" role="separator"></div>
+                <button type="button" role="menuitem" id="addConnection">Add connection</button>
+                <button type="button" role="menuitem" id="importConnection">Import settings</button>
+                <button type="button" role="menuitem" id="manageConnections">Manage connections</button>
+              </div>
+            </div>
+            <div id="rootFolders" class="folder-group rail-folder-group" aria-label="Space folders"></div>
+            <button type="button" id="pinCurrentFolder" class="folder-pin">Pin Current</button>
+            <div id="pinnedFolders" class="folder-group"></div>
+            <div id="recentFolders" class="folder-group rail-folder-group" aria-label="Recent folders"></div>
+          </aside>
+          <div class="remote-pane" role="region" tabindex="0" data-drop-target="current-folder" aria-label="Files in the current server folder. Drop files or folders here to upload.">
+            <div class="drop-hint" id="remoteDropHint">
+              Current folder intake: drop files or folders here to check, upload, and verify automatically
+            </div>
+            <div id="selectionSummary" class="selection-summary">0 selected</div>
+            <div id="remoteNavigationStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+            <div id="moveTray" class="move-tray" hidden>
+              <div class="move-tray-head">
+                <h3>Move Selected</h3>
+                <button type="button" id="closeMoveTray" class="quiet">Close</button>
+              </div>
+              <label>
+                Destination folder or exact path
+                <input id="moveTarget" type="text" spellcheck="false" />
+              </label>
+              <div id="moveTargetButtons" class="move-target-buttons"></div>
+              <div class="move-actions">
+                <button type="button" id="moveIntoFolder" class="primary">Move into folder</button>
+                <button type="button" id="moveExact" class="quiet">Exact rename/move</button>
+              </div>
+            </div>
+            <div id="remoteTable" class="remote-table" role="grid" tabindex="-1" aria-label="Remote files" aria-colcount="4">
+              <div class="empty-state">Loading remote files...</div>
+            </div>
+            <aside class="drive-inspector" aria-labelledby="inspectorHeading">
+              <h2 id="inspectorHeading">Inspector</h2>
+              <h3 id="inspectorTitle">Nothing selected</h3>
+              <p id="inspectorSubtitle">Select a file or folder to inspect it.</p>
+              <div id="inspectorPreview" class="inspector-preview" hidden>
+                <div id="inspectorPreviewStatus" class="inspector-preview-status" role="status" aria-live="polite">Preparing preview...</div>
+                <img id="inspectorPreviewImage" alt="" hidden />
+                <button type="button" id="openImagePreview" class="quiet" hidden>Larger preview</button>
+              </div>
+              <dl>
+                <div><dt>Kind</dt><dd id="inspectorKind">Selection</dd></div>
+                <div><dt>Detail</dt><dd id="inspectorDetail">0 items</dd></div>
+                <div><dt>URL</dt><dd id="inspectorUrl">-</dd></div>
+              </dl>
+              <div class="inspector-actions">
+                <button type="button" id="inspectorDownload" class="primary" disabled>Download</button>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <dialog id="newFolderDialog" class="connection-package-dialog folder-dialog" aria-labelledby="newFolderTitle">
+        <form id="newFolderForm" novalidate>
+          <div class="connection-package-head">
+            <div>
+              <p class="eyebrow">Server folder</p>
+              <h2 id="newFolderTitle">New folder</h2>
+            </div>
+            <button type="button" id="newFolderClose" class="quiet icon-button" aria-label="Close new folder dialog" title="Close">&#215;</button>
+          </div>
+          <p id="newFolderDestination" class="connection-package-summary"></p>
+          <label>
+            Folder name
+            <input id="newFolderName" type="text" autocomplete="off" spellcheck="false" required />
+          </label>
+          <div id="newFolderStatus" class="connection-package-status" role="status" aria-live="polite" hidden></div>
+          <div class="connection-package-actions">
+            <button type="button" id="newFolderCancel" class="quiet">Cancel</button>
+            <button type="submit" id="newFolderCreate" class="primary">Create folder</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="imagePreviewDialog" class="image-preview-dialog" aria-labelledby="imagePreviewTitle">
+        <div class="image-preview-shell">
+          <header class="image-preview-head">
+            <h2 id="imagePreviewTitle">Image preview</h2>
+            <button type="button" id="closeImagePreview" class="quiet icon-button" aria-label="Close preview" title="Close preview">&times;</button>
+          </header>
+          <div class="image-preview-stage">
+            <img id="imagePreviewImage" alt="" />
+          </div>
+          <div class="image-preview-actions">
+            <button type="button" id="dialogDownload" class="primary">Download</button>
+            <button type="button" id="dismissImagePreview" class="quiet">Close</button>
+          </div>
+        </div>
+      </dialog>
+
+      <section id="eventWorkspacePanel" class="event-workspace-panel advanced-only" aria-labelledby="eventWorkspaceTitle" hidden>
+        <div class="section-head">
+          <div>
+            <p class="eyebrow" id="eventWorkspacePreset">No manifest loaded</p>
+            <h2 id="eventWorkspaceTitle" tabindex="-1">Event Workspace</h2>
+          </div>
+          <div class="log-actions">
+            <button type="button" id="openEventManifest" class="quiet">Open manifest</button>
+            <button type="button" id="addEventLocalRoot" class="quiet">Add Local Root</button>
+            <button type="button" id="runEventReconcile" class="primary">Reconcile</button>
+            <button type="button" id="queueEventMissing" class="quiet" disabled>Queue Missing</button>
+          </div>
+        </div>
+        <div class="event-workspace-grid">
+          <div class="event-workspace-summary" id="eventManifestSummary">Open a local event manifest to begin.</div>
+          <div class="event-local-roots">
+            <h3>Local roots</h3>
+            <div id="eventLocalRoots" class="event-root-list">No local roots selected.</div>
+          </div>
+        </div>
+        <div id="eventReconcileSummary" class="event-reconcile-summary" role="status">Choose local roots before reconcile.</div>
+      </section>
+
+      <section id="connectionsPanel" class="connections-panel" hidden aria-labelledby="connectionsTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">DigitalOcean Spaces</p>
+            <h2 id="connectionsTitle" tabindex="-1">Connections</h2>
+          </div>
+          <div class="section-head-actions">
+            <button type="button" id="connectionsImportButton" class="quiet">Import connection</button>
+            <button type="button" id="connectionsAddButton" class="primary">Add connection</button>
+          </div>
+        </div>
+        <div id="connectionNotice" class="connection-notice" role="status" aria-live="polite" hidden></div>
+        <div id="connectionsList" class="connections-list" aria-live="polite"></div>
+        <details id="connectionEditor" class="connection-editor">
+          <summary>Add a DigitalOcean Space</summary>
+          <div class="connection-editor-grid">
+            <div class="mini-head">
+              <h3>Connection details</h3>
+              <span id="profileStatus">Not connected</span>
+            </div>
+            <p class="profile-help">Use an existing rclone profile, or add Spaces keys once to create it locally. Uplink stores only the connection name, profile name, Space, and endpoint.</p>
+            <label>
+              Connection name
+              <input id="connectionName" type="text" spellcheck="false" placeholder="Production archive" />
+            </label>
+            <label>
+              rclone profile
+              <input id="profileRemote" type="text" spellcheck="false" placeholder="archive" />
+            </label>
+            <label>
+              Space / bucket
+              <input id="profileBucket" type="text" spellcheck="false" placeholder="archive-media" />
+            </label>
+            <label>
+              Region
+              <select id="profileRegion">
+                <option value="nyc3">New York 3</option>
+                <option value="sfo3">San Francisco 3</option>
+                <option value="sfo2">San Francisco 2</option>
+                <option value="ams3">Amsterdam 3</option>
+                <option value="sgp1">Singapore 1</option>
+                <option value="lon1">London 1</option>
+                <option value="fra1">Frankfurt 1</option>
+                <option value="tor1">Sample Event 1</option>
+                <option value="blr1">Bangalore 1</option>
+                <option value="syd1">Sydney 1</option>
+              </select>
+            </label>
+            <label class="profile-endpoint-field">
+              DigitalOcean endpoint
+              <input id="profileEndpoint" type="text" spellcheck="false" />
+            </label>
+            <div class="connection-editor-actions">
+              <button type="button" id="testProfile" class="quiet">Add existing profile</button>
+            </div>
+            <details class="credential-setup">
+              <summary>Create the rclone profile with Spaces keys</summary>
+              <p class="credential-note">Keys are used only for this action and cleared after every attempt. They are never written to Uplink settings, Activity, or logs.</p>
+              <div class="credential-fields">
+                <label>
+                  Access key
+                  <input id="setupAccessKey" type="password" autocomplete="off" spellcheck="false" />
+                </label>
+                <label>
+                  Secret key
+                  <input id="setupSecretKey" type="password" autocomplete="off" spellcheck="false" />
+                </label>
+              </div>
+              <button type="button" id="setupProfile" class="quiet">Save keys and add</button>
+            </details>
+          </div>
+        </details>
+        <details id="automationAccess" class="connection-utility">
+          <summary>Automation access</summary>
+          <div class="automation-access-body">
+            <div class="automation-access-head">
+              <div>
+                <h3>Local API and MCP</h3>
+                <p>Let approved tools browse Spaces and add work to the upload queue. Real uploads and server changes stay inside Uplink.</p>
+              </div>
+              <span id="automationAccessState" class="status-pill">Off</span>
+            </div>
+            <div id="automationAccessUrl" class="automation-access-url">Create a key to start local automation.</div>
+            <label>
+              Key name
+              <input id="automationKeyName" type="text" maxlength="80" spellcheck="false" placeholder="Editing laptop" />
+            </label>
+            <div class="automation-access-actions">
+              <button type="button" id="createAutomationKey" class="primary">Create API key</button>
+              <button type="button" id="createMcpConfiguration" class="quiet">Create MCP configuration</button>
+            </div>
+            <div id="automationAccessNotice" class="connection-package-status" role="status" aria-live="polite" hidden></div>
+            <div id="automationOneTimeSecret" class="automation-one-time" hidden>
+              <strong id="automationOneTimeTitle">Save this value now</strong>
+              <p id="automationOneTimeHelp">It is shown once and cannot be recovered later.</p>
+              <textarea id="automationOneTimeValue" rows="7" readonly spellcheck="false"></textarea>
+              <div class="automation-access-actions">
+                <button type="button" id="copyAutomationValue" class="primary">Copy</button>
+                <button type="button" id="dismissAutomationValue" class="quiet">I have saved it</button>
+              </div>
+            </div>
+            <div>
+              <h3>Active keys</h3>
+              <div id="automationKeyList" class="automation-key-list">
+                <div class="empty-state">No API keys yet.</div>
+              </div>
+            </div>
+          </div>
+        </details>
+        <input id="connectionImportFile" type="file" accept="application/json,.json" hidden />
+      </section>
+
+      <dialog id="connectionExportDialog" class="connection-package-dialog" aria-labelledby="connectionExportTitle">
+        <form id="connectionExportForm" novalidate>
+          <div class="connection-package-head">
+            <div>
+              <p class="eyebrow">Share connection</p>
+              <h2 id="connectionExportTitle">Export Space settings</h2>
+            </div>
+            <button type="button" id="connectionExportClose" class="quiet icon-button" aria-label="Close export dialog" title="Close">&#215;</button>
+          </div>
+          <p id="connectionExportSummary" class="connection-package-summary"></p>
+          <label class="connection-package-option">
+            <input id="connectionExportIncludeKeys" type="checkbox" />
+            <span>
+              <strong>Also include the access keys</strong>
+              <small>Off by default. The normal package contains only the Space connection settings.</small>
+            </span>
+          </label>
+          <div id="connectionExportSecrets" class="connection-package-secrets" hidden>
+            <div class="connection-package-warning" role="alert">
+              Anyone with this file and its password can access the Space. Send the file and password separately.
+            </div>
+            <div class="credential-fields">
+              <label>
+                Access key
+                <input id="connectionExportAccessKey" type="password" autocomplete="off" spellcheck="false" />
+              </label>
+              <label>
+                Secret key
+                <input id="connectionExportSecretKey" type="password" autocomplete="off" spellcheck="false" />
+              </label>
+              <label>
+                Package password
+                <input id="connectionExportPassword" type="password" autocomplete="new-password" spellcheck="false" minlength="12" />
+              </label>
+              <label>
+                Confirm password
+                <input id="connectionExportPasswordConfirm" type="password" autocomplete="new-password" spellcheck="false" minlength="12" />
+              </label>
+            </div>
+            <label class="connection-package-acknowledgement">
+              <input id="connectionExportAcknowledge" type="checkbox" />
+              <span>I understand this package grants server access.</span>
+            </label>
+          </div>
+          <div id="connectionExportStatus" class="connection-package-status" role="status" aria-live="polite" hidden></div>
+          <div class="connection-package-actions">
+            <button type="button" id="connectionExportCancel" class="quiet">Cancel</button>
+            <button type="submit" id="connectionExportSave" class="primary">Export package</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="connectionImportDialog" class="connection-package-dialog" aria-labelledby="connectionImportTitle">
+        <form id="connectionImportForm" novalidate>
+          <div class="connection-package-head">
+            <div>
+              <p class="eyebrow">Add connection</p>
+              <h2 id="connectionImportTitle">Import Space settings</h2>
+            </div>
+            <button type="button" id="connectionImportClose" class="quiet icon-button" aria-label="Close import dialog" title="Close">&#215;</button>
+          </div>
+          <div id="connectionImportLocked" class="connection-import-locked" hidden>
+            <p>This package includes encrypted access keys. Enter its password to see the Space and continue.</p>
+            <label>
+              Package password
+              <input id="connectionImportPassword" type="password" autocomplete="current-password" spellcheck="false" minlength="12" />
+            </label>
+            <button type="button" id="connectionImportUnlock" class="primary">Unlock package</button>
+          </div>
+          <div id="connectionImportPreview" class="connection-import-preview" hidden>
+            <dl>
+              <div><dt>Connection</dt><dd id="connectionImportName">-</dd></div>
+              <div><dt>Space</dt><dd id="connectionImportBucket">-</dd></div>
+              <div><dt>Endpoint</dt><dd id="connectionImportEndpoint">-</dd></div>
+              <div><dt>rclone profile</dt><dd id="connectionImportRemote">-</dd></div>
+            </dl>
+            <p id="connectionImportKeyNote"></p>
+          </div>
+          <div id="connectionImportStatus" class="connection-package-status" role="status" aria-live="polite" hidden></div>
+          <div class="connection-package-actions">
+            <button type="button" id="connectionImportCancel" class="quiet">Cancel</button>
+            <button type="submit" id="connectionImportSave" class="primary" disabled>Confirm import</button>
+          </div>
+        </form>
+      </dialog>
+
+      <section class="workspace advanced-only" aria-labelledby="advancedTitle">
+        <div class="advanced-primary-head">
+          <p class="eyebrow">Specialist tools</p>
+          <h2 id="advancedTitle" tabindex="-1">Advanced transfer controls</h2>
+        </div>
+        <aside class="settings-panel" aria-labelledby="advancedTitle">
+          <label>
+            Destination prefix
+            <input id="prefix" type="text" spellcheck="false" />
+          </label>
+          <label>
+            File filter
+            <select id="filterMode">
+              <option value="all">All files</option>
+              <option value="videos-images">Videos/images</option>
+              <option value="media-docs">Media/docs</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label>
+            Include filter
+            <input id="include" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Folder upload
+            <select id="folderUploadMode">
+              <option value="package">Keep folder name</option>
+              <option value="contents">Contents only</option>
+            </select>
+          </label>
+          <label class="toggle-row">
+            <input id="publicRead" type="checkbox" />
+            <span>public-read objects</span>
+          </label>
+          <label>
+            Verification
+            <select id="checksum">
+              <option value="size">Size check</option>
+              <option value="sha256">Full SHA-256</option>
+            </select>
+          </label>
+          <label>
+            Webhook URL
+            <input id="notifyWebhook" type="url" spellcheck="false" placeholder="https://..." />
+          </label>
+          <label>
+            ntfy topic or URL
+            <input id="notifyNtfy" type="text" spellcheck="false" placeholder="murdawk-uplink-topic" />
+          </label>
+          <label>
+            Notify on
+            <select id="notifyOn">
+              <option value="success">Success</option>
+              <option value="failure">Failure</option>
+              <option value="always">Always</option>
+            </select>
+          </label>
+          <div class="button-row">
+            <button type="button" id="dryRun">Dry run all</button>
+            <button type="button" id="verify">Remove selected</button>
+            <button type="button" id="upload" class="primary" disabled>Upload all ready</button>
+            <button type="button" id="cancel" class="quiet" disabled>Cancel</button>
+          </div>
+          <div class="advanced-tool-row">
+            <div>
+              <strong>Event Workspace</strong>
+              <span>Load a local JSON manifest to reconcile event recordings.</span>
+            </div>
+            <button type="button" id="openEventWorkspaceAdvanced" class="quiet">Open manifest</button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="organize-section advanced-only" id="organizeSection" aria-labelledby="organizeTitle" hidden>
+        <div class="section-head">
+          <h2 id="organizeTitle">Organize Uploaded Folder</h2>
+          <span id="organizeSource" class="status-pill">No verified folder yet</span>
+        </div>
+        <div class="organize-wrap">
+          <label>
+            Event
+            <input id="archiveEvent" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Category
+            <select id="archiveCategory">
+              <option value="raw">Raw archive</option>
+              <option value="livestream">Livestream edit</option>
+              <option value="talks">Talks edit</option>
+            </select>
+          </label>
+          <label>
+            Stage
+            <input id="archiveStage" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Day
+            <input id="archiveDay" type="text" spellcheck="false" />
+          </label>
+          <label>
+            Archive folder name
+            <input id="archivePackageName" type="text" spellcheck="false" />
+          </label>
+          <div class="archive-preview" id="archivePreview"></div>
+          <div class="move-actions">
+            <button type="button" id="renameUploadedRoot" class="quiet">Rename verified upload</button>
+            <button type="button" id="moveUploadedRoot" class="primary">Move verified upload to archive</button>
+            <button type="button" id="moveSelectedToArchive" class="primary">Move selected server item to archive</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="queueDrawer" class="queue-section advanced-only" aria-labelledby="queueTitle queueDrawerTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Advanced</p>
+            <h2 id="queueTitle">Transfer Queue</h2>
+            <span id="queueDrawerTitle">Detailed queue controls</span>
+          </div>
+          <div class="log-actions">
+            <button type="button" id="checkUploadSelected" class="primary" disabled>Check + upload selected</button>
+            <button type="button" id="dryRunSelected" class="quiet" disabled>Dry run selected</button>
+            <button type="button" id="uploadSelected" class="quiet" disabled>Upload selected</button>
+            <button type="button" id="clearQueue" class="quiet">Clear completed</button>
+          </div>
+        </div>
+        <div class="section-note">Explorer drops and upload pickers pre-check and upload automatically. These controls remain available for specialist recovery and manual transfer work.</div>
+        <div class="queue-table" id="queueTable">
+          <div class="empty-state">No files selected yet.</div>
+        </div>
+      </section>
+
+      <section class="history-section advanced-only" aria-labelledby="historyTitle">
+        <div class="section-head">
+          <h2 id="historyTitle">History / Resume</h2>
+          <div class="log-actions">
+            <button type="button" id="refreshHistory" class="quiet">Refresh history</button>
+            <button type="button" id="resumeHistory" class="primary" disabled>Resume selected</button>
+          </div>
+        </div>
+        <div class="section-note">History records live in <code>.runs/jobs</code>. Resume creates a new queue row from the original non-secret settings and checks completed remote files before continuing.</div>
+        <div class="history-table" id="historyTable">
+          <div class="empty-state">Upload history will appear here.</div>
+        </div>
+      </section>
+
+      <section class="progress-section advanced-only" aria-labelledby="progressTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Advanced</p>
+            <h2 id="progressTitle">Transfer Diagnostics</h2>
+          </div>
+          <div class="log-actions">
+            <button type="button" id="checkActivity" class="quiet">Check activity</button>
+            <span id="transferMode" class="status-pill">idle</span>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div id="activitySummary" class="activity-summary activity-idle">
+            <strong>No active rclone transfer</strong>
+            <span>Safe to close if no queue job is uploading.</span>
+          </div>
+          <div class="transfer-context">
+            <div>
+              <span>Destination</span>
+              <strong id="activeDestination">No active transfer</strong>
+            </div>
+            <div>
+              <span>Now uploading</span>
+              <strong id="activeSource">-</strong>
+            </div>
+            <div>
+              <span>Source</span>
+              <strong id="activeSourceCount">-</strong>
+            </div>
+            <div>
+              <span>Next up</span>
+              <strong id="nextJob">-</strong>
+            </div>
+            <div>
+              <span>Process</span>
+              <strong id="activeProcess">-</strong>
+            </div>
+            <div>
+              <span>Last output</span>
+              <strong id="lastOutput">-</strong>
+            </div>
+          </div>
+          <div class="progress-bar" aria-label="Upload progress">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+          <div class="metrics">
+            <div><span>Progress</span><strong id="progressPercent">0%</strong></div>
+            <div><span>Transferred</span><strong id="progressBytes">-</strong></div>
+            <div><span>Speed</span><strong id="progressSpeed">-</strong></div>
+            <div><span>ETA</span><strong id="progressEta">-</strong></div>
+          </div>
+          <div class="diagnostic-grid" aria-label="Transfer diagnostics">
+            <div><span>Throughput</span><strong id="diagnosticMetrics">current - | avg - | peak -</strong></div>
+            <div><span>rclone tuning</span><strong id="diagnosticTuning">transfers 4, chunk 64M, concurrency 4</strong></div>
+            <div><span>Safe next action</span><strong id="diagnosticAction">Safe to close if no queue job is uploading.</strong></div>
+            <div><span>Recommendation</span><strong id="diagnosticRecommendation">Current settings are conservative.</strong></div>
+          </div>
+          <div id="verification" class="verification">Verification has not run yet.</div>
+        </div>
+      </section>
+
+      <section class="results-section advanced-only" aria-labelledby="resultsTitle">
+        <div class="section-head">
+          <h2 id="resultsTitle">Public URLs</h2>
+          <button type="button" id="copyUrls" class="quiet" disabled>Copy URLs</button>
+        </div>
+        <textarea id="urls" readonly placeholder="Public URLs appear after upload and verification complete."></textarea>
+      </section>
+
+      <section class="log-section terminal advanced-only" aria-labelledby="logTitle">
+        <div class="section-head">
+          <h2 id="logTitle">Terminal</h2>
+          <div class="log-actions">
+            <button type="button" id="copyDiagnostics" class="quiet" disabled>Copy diagnostics</button>
+            <button type="button" id="openLogFolder" class="quiet">Open logs</button>
+            <button type="button" id="clearLog" class="quiet">Clear log</button>
+          </div>
+        </div>
+        <pre id="log"></pre>
+      </section>
+
+    </main>
+    <script src="../transfer-diagnostics-core.js"></script>
+    <script src="../transfer-shelf-core.js"></script>
+    <script src="../rclone-remote-core.js"></script>
+    <script src="../connection-core.js"></script>
+    <script src="../queue-recovery-core.js"></script>
+    <script src="../pause-core.js"></script>
+    <script src="../activity-core.js"></script>
+    <script src="../drive-shell-core.js"></script>
+    <script src="../navigation-core.js"></script>
+    <script src="./explorer-ui-core.js"></script>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "client": "Example Organization",
+  "eventName": "sample-event",
+  "eventPrefix": "sample-event",
+  "year": 2026,
+  "eventNumber": 1,
+  "remote": "media",
+  "bucket": "media-archive",
+  "endpointHost": "media-archive.nyc3.digitaloceanspaces.com",
+  "recordingsPrefix": "sample-event/recordings",
+  "stages": ["Main", "Talk", "Workshop"],
+  "days": ["Day 1", "Day 2", "Day 3"],
+  "localRoots": []
+}
